@@ -253,7 +253,9 @@ unsigned char *huffman_compressor(unsigned char *data, int size, int *compressed
 
 unsigned char *lz78_compressor(unsigned char *dado, int size, int *tam_comprimido)
 {
-    Dicionario *dicionario = (Dicionario *)malloc(size * sizeof(Dicionario));
+    int max_dicionario_size = 256; // ou qualquer outro valor que você desejar
+    Dicionario *dicionario = (Dicionario *)malloc(max_dicionario_size * sizeof(Dicionario));
+
     int dicionario_size = 0;
 
     unsigned char *comprimido = (unsigned char *)malloc(2 * size * sizeof(unsigned char));
@@ -288,7 +290,7 @@ unsigned char *lz78_compressor(unsigned char *dado, int size, int *tam_comprimid
                 comprimido[index++] = cor.g;
                 comprimido[index++] = cor.b;
 
-                if (dicionario_size < size)
+                if (dicionario_size < max_dicionario_size)
                 {
                     dicionario[dicionario_size].cor = proxima_cor;
                     dicionario_size++;
@@ -343,19 +345,8 @@ Imagem *carregar_ppm(const char *nome_arquivo)
     return imagem;
 }
 
-int main()
+void processar_imagens(const char *nomesArquivos[], int numArquivos)
 {
-    const char *nomesArquivos[] = {
-        "Image1.ppm",
-        "louis.ppm",
-        "magazines.ppm",
-        "debbiewarhol.ppm",
-        "maxresdefault.ppm",
-        "EricWSchwartz.ppm"
-        };
-
-    int numArquivos = sizeof(nomesArquivos) / sizeof(nomesArquivos[0]);
-
     for (int i = 0; i < numArquivos; i++)
     {
         const char *nomeArquivo = nomesArquivos[i];
@@ -370,27 +361,27 @@ int main()
             unsigned char *dado_comprimido;
             double taxa_compressao;
 
+            printf("Tamanho original: %d bytes\n", tamanho_original);
             // RLE
             dado_comprimido = rle_compressor(imagem->dados, tamanho_original, &tam_comprimido);
             taxa_compressao = (1.0 - tam_comprimido / (double)tamanho_original) * 100;
-            printf("Metodo: RLE\n");
-            printf("Tamanho original: %d bytes\n", tamanho_original);
+            printf("\n------Metodo: RLE\n");
             printf("Tamanho comprimido: %d bytes\n", tam_comprimido);
             printf("Taxa de compressao: %.2f%%\n", taxa_compressao);
 
             // Huffman
             dado_comprimido = huffman_compressor(imagem->dados, tamanho_original, &tam_comprimido);
             taxa_compressao = (1.0 - tam_comprimido / (double)tamanho_original) * 100;
-            printf("Metodo: Huffman\n");
-            printf("Tamanho original: %d bytes\n", tamanho_original);
+            printf("\n------Metodo: Huffman\n");
+            //printf("Tamanho original: %d bytes\n", tamanho_original);
             printf("Tamanho comprimido: %d bytes\n", tam_comprimido);
             printf("Taxa de compressao: %.2f%%\n", taxa_compressao);
 
             // LZ78
             dado_comprimido = lz78_compressor(imagem->dados, tamanho_original, &tam_comprimido);
             taxa_compressao = (1.0 - tam_comprimido / (double)tamanho_original) * 100;
-            printf("Metodo: LZ78\n");
-            printf("Tamanho original: %d bytes\n", tamanho_original);
+            printf("\n------Metodo: LZ78\n");
+            //printf("Tamanho original: %d bytes\n", tamanho_original);
             printf("Tamanho comprimido: %d bytes\n", tam_comprimido);
             printf("Taxa de compressao: %.2f%%\n", taxa_compressao);
 
@@ -399,5 +390,23 @@ int main()
             free(imagem);
         }
     }
+}
+
+
+int main()
+{
+   const char *nomesArquivos[] = {
+    "Image1.ppm",
+    "louis.ppm",
+    "magazines.ppm",
+    "debbiewarhol.ppm",
+    "maxresdefault.ppm",
+    "EricWSchwartz.ppm"
+};
+
+int numArquivos = sizeof(nomesArquivos) / sizeof(nomesArquivos[0]);
+
+processar_imagens(nomesArquivos, numArquivos);
+
     return 0;
 }
