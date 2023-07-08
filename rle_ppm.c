@@ -251,63 +251,66 @@ unsigned char *huffman_compressor(unsigned char *data, int size, int *compressed
     return compressed_data;
 }
 
-unsigned char *lz78_compressor(unsigned char *dado, int size, int *tam_comprimido)
+unsigned char *lz78_compressor(unsigned char *data, int size, int *compressed_size)
 {
-    int max_dicionario_size = 256; // ou qualquer outro valor que você desejar
-    Dicionario *dicionario = (Dicionario *)malloc(max_dicionario_size * sizeof(Dicionario));
+    int max_dict_size = 256;
+    Dicionario dictionary[max_dict_size];
+    int dict_size = 0;
 
-    int dicionario_size = 0;
-
-    unsigned char *comprimido = (unsigned char *)malloc(2 * size * sizeof(unsigned char));
+    unsigned char *compressed = (unsigned char *)malloc(2 * size * sizeof(unsigned char));
     int index = 0;
 
-    for (int i = 0; i < size; i += 3)
+    Pixel current_color;
+    current_color.r = data[0];
+    current_color.g = data[1];
+    current_color.b = data[2];
+
+    int i;
+    for (i = 3; i < size; i += 3)
     {
-        Pixel cor;
-        cor.r = dado[i];
-        cor.g = dado[i + 1];
-        cor.b = dado[i + 2];
+        Pixel next_color;
+        next_color.r = data[i];
+        next_color.g = data[i + 1];
+        next_color.b = data[i + 2];
 
-        int j = i + 3;
-        while (j < size)
+        int j;
+        for (j = 0; j < dict_size; j++)
         {
-            Pixel proxima_cor;
-            proxima_cor.r = dado[j];
-            proxima_cor.g = dado[j + 1];
-            proxima_cor.b = dado[j + 2];
-
-            int k;
-            for (k = 0; k < dicionario_size; k++)
-            {
-                if (dicionario[k].cor.r == proxima_cor.r && dicionario[k].cor.g == proxima_cor.g && dicionario[k].cor.b == proxima_cor.b)
-                    break;
-            }
-
-            if (k == dicionario_size)
-            {
-                comprimido[index++] = dicionario_size;
-                comprimido[index++] = cor.r;
-                comprimido[index++] = cor.g;
-                comprimido[index++] = cor.b;
-
-                if (dicionario_size < max_dicionario_size)
-                {
-                    dicionario[dicionario_size].cor = proxima_cor;
-                    dicionario_size++;
-                }
-
+            if (dictionary[j].cor.r == next_color.r && dictionary[j].cor.g == next_color.g && dictionary[j].cor.b == next_color.b)
                 break;
+        }
+
+        if (j == dict_size)
+        {
+            compressed[index++] = dict_size;
+            compressed[index++] = current_color.r;
+            compressed[index++] = current_color.g;
+            compressed[index++] = current_color.b;
+
+            if (dict_size < max_dict_size)
+            {
+                dictionary[dict_size].indice = dict_size;
+                dictionary[dict_size].cor = next_color;
+                dict_size++;
             }
 
-            cor = proxima_cor;
-            j += 3;
+            current_color = next_color;
+        }
+        else
+        {
+            current_color = next_color;
         }
     }
 
-    *tam_comprimido = index;
-    free(dicionario);
-    return comprimido;
+    compressed[index++] = dict_size;
+    compressed[index++] = current_color.r;
+    compressed[index++] = current_color.g;
+    compressed[index++] = current_color.b;
+
+    *compressed_size = index;
+    return compressed;
 }
+
 
 Imagem *carregar_ppm(const char *nome_arquivo)
 {
@@ -344,6 +347,25 @@ Imagem *carregar_ppm(const char *nome_arquivo)
     fclose(arquivo);
     return imagem;
 }
+void save_compressed_data(const char *filename, Imagem *imagem, unsigned char *compressed_data, int compressed_size)
+{
+    FILE *file = fopen(filename, "wb");
+    if (!file)
+    {
+        fprintf(stderr, "Erro ao abrir o arquivo %s para escrita\n", filename);
+        return;
+    }
+
+    // Escrever o cabeçalho PPM no arquivo
+    fprintf(file, "P6\n");
+    fprintf(file, "%d %d\n", imagem->largura, imagem->altura);
+    fprintf(file, "255\n");
+
+    // Escrever os dados comprimidos no arquivo
+    fwrite(compressed_data, sizeof(unsigned char), compressed_size, file);
+    fclose(file);
+}
+
 
 void processar_imagens(const char *nomesArquivos[], int numArquivos)
 {
@@ -362,6 +384,7 @@ void processar_imagens(const char *nomesArquivos[], int numArquivos)
             double taxa_compressao;
 
             printf("Tamanho original: %d bytes\n", tamanho_original);
+
             // RLE
             dado_comprimido = rle_compressor(imagem->dados, tamanho_original, &tam_comprimido);
             taxa_compressao = (1.0 - tam_comprimido / (double)tamanho_original) * 100;
@@ -369,21 +392,32 @@ void processar_imagens(const char *nomesArquivos[], int numArquivos)
             printf("Tamanho comprimido: %d bytes\n", tam_comprimido);
             printf("Taxa de compressao: %.2f%%\n", taxa_compressao);
 
+            // Salvar dados comprimidos em um arquivo
+            char output_filename[256];
+            sprintf(output_filename, "compressoes/RLE/RLE-%s", nomeArquivo);
+            save_compressed_data(output_filename, imagem, dado_comprimido, tam_comprimido);
+
             // Huffman
             dado_comprimido = huffman_compressor(imagem->dados, tamanho_original, &tam_comprimido);
             taxa_compressao = (1.0 - tam_comprimido / (double)tamanho_original) * 100;
             printf("\n------Metodo: Huffman\n");
-            //printf("Tamanho original: %d bytes\n", tamanho_original);
             printf("Tamanho comprimido: %d bytes\n", tam_comprimido);
             printf("Taxa de compressao: %.2f%%\n", taxa_compressao);
+
+            // Salvar dados comprimidos em um arquivo
+            sprintf(output_filename, "compressoes/HUFFMAN/HUFF-%s", nomeArquivo);
+            save_compressed_data(output_filename, imagem, dado_comprimido, tam_comprimido);
 
             // LZ78
             dado_comprimido = lz78_compressor(imagem->dados, tamanho_original, &tam_comprimido);
             taxa_compressao = (1.0 - tam_comprimido / (double)tamanho_original) * 100;
             printf("\n------Metodo: LZ78\n");
-            //printf("Tamanho original: %d bytes\n", tamanho_original);
             printf("Tamanho comprimido: %d bytes\n", tam_comprimido);
             printf("Taxa de compressao: %.2f%%\n", taxa_compressao);
+
+            // Salvar dados comprimidos em um arquivo
+            sprintf(output_filename, "compressoes/LZ78/LZ78-%s", nomeArquivo);
+            save_compressed_data(output_filename, imagem, dado_comprimido, tam_comprimido);
 
             printf("----------------------------------------------------------------\n");
             free(imagem->dados);
@@ -391,6 +425,8 @@ void processar_imagens(const char *nomesArquivos[], int numArquivos)
         }
     }
 }
+
+
 
 
 int main()
