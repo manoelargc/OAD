@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <string.h>
 
 typedef struct
 {
@@ -8,6 +9,19 @@ typedef struct
     int altura;
     unsigned char *dados;
 } Imagem;
+
+typedef struct
+{
+    unsigned char r;
+    unsigned char g;
+    unsigned char b;
+} Pixel;
+
+typedef struct
+{
+    int indice;
+    Pixel cor;
+} Dicionario;
 
 unsigned char *rle_compressor(unsigned char *dado, int size, int *tam_comprimido)
 {
@@ -55,8 +69,241 @@ unsigned char *rle_compressor(unsigned char *dado, int size, int *tam_comprimido
     comprimido[index++] = atual_r;
     comprimido[index++] = atual_g;
     comprimido[index++] = atual_b;
+    *tam_comprimido = index;
+    return comprimido;
+}
+
+typedef struct HuffmanNode
+{
+    unsigned char symbol;
+    int frequency;
+    struct HuffmanNode *left;
+    struct HuffmanNode *right;
+} HuffmanNode;
+
+HuffmanNode *create_huffman_node(unsigned char symbol, int frequency, HuffmanNode *left, HuffmanNode *right)
+{
+    HuffmanNode *node = (HuffmanNode *)malloc(sizeof(HuffmanNode));
+    node->symbol = symbol;
+    node->frequency = frequency;
+    node->left = left;
+    node->right = right;
+    return node;
+}
+
+void destroy_huffman_tree(HuffmanNode *root)
+{
+    if (root == NULL)
+        return;
+
+    destroy_huffman_tree(root->left);
+    destroy_huffman_tree(root->right);
+    free(root);
+}
+
+void build_frequency_table(unsigned char *data, int size, int *frequency_table)
+{
+    for (int i = 0; i < size; i++)
+    {
+        unsigned char symbol = data[i];
+        frequency_table[symbol]++;
+    }
+}
+
+HuffmanNode *build_huffman_tree(int *frequency_table)
+{
+    HuffmanNode *heap[256];
+    int heap_size = 0;
+
+    for (int i = 0; i < 256; i++)
+    {
+        if (frequency_table[i] > 0)
+        {
+            HuffmanNode *node = create_huffman_node(i, frequency_table[i], NULL, NULL);
+            heap[heap_size++] = node;
+        }
+    }
+
+    while (heap_size > 1)
+    {
+        int min1_index = 0;
+        int min2_index = 1;
+
+        if (heap[min1_index]->frequency > heap[min2_index]->frequency)
+        {
+            int temp = min1_index;
+            min1_index = min2_index;
+            min2_index = temp;
+        }
+
+        for (int i = 2; i < heap_size; i++)
+        {
+            if (heap[i]->frequency < heap[min1_index]->frequency)
+            {
+                min2_index = min1_index;
+                min1_index = i;
+            }
+            else if (heap[i]->frequency < heap[min2_index]->frequency)
+            {
+                min2_index = i;
+            }
+        }
+
+        HuffmanNode *min1 = heap[min1_index];
+        HuffmanNode *min2 = heap[min2_index];
+        HuffmanNode *parent = create_huffman_node(0, min1->frequency + min2->frequency, min1, min2);
+
+        heap[min1_index] = parent;
+        heap[min2_index] = heap[heap_size - 1];
+        heap_size--;
+    }
+
+    return heap[0];
+}
+
+void build_huffman_codes(HuffmanNode *node, char *code, char **codes)
+{
+    if (node == NULL)
+        return;
+
+    if (node->left == NULL && node->right == NULL)
+    {
+        int symbol = node->symbol;
+        codes[symbol] = (char *)malloc(strlen(code) + 1);
+        strcpy(codes[symbol], code);
+        return;
+    }
+
+    int code_length = strlen(code);
+    char *left_code = (char *)malloc(code_length + 2);
+    strcpy(left_code, code);
+    left_code[code_length] = '0';
+    left_code[code_length + 1] = '\0';
+
+    build_huffman_codes(node->left, left_code, codes);
+
+    char *right_code = (char *)malloc(code_length + 2);
+    strcpy(right_code, code);
+    right_code[code_length] = '1';
+    right_code[code_length + 1] = '\0';
+
+    build_huffman_codes(node->right, right_code, codes);
+}
+
+unsigned char *huffman_compressor(unsigned char *data, int size, int *compressed_size)
+{
+    int frequency_table[256] = {0};
+    build_frequency_table(data, size, frequency_table);
+
+    HuffmanNode *huffman_tree = build_huffman_tree(frequency_table);
+
+    char *codes[256] = {NULL};
+    build_huffman_codes(huffman_tree, "", codes);
+
+    int max_code_length = 0;
+    for (int i = 0; i < 256; i++)
+    {
+        if (codes[i] != NULL && strlen(codes[i]) > max_code_length)
+            max_code_length = strlen(codes[i]);
+    }
+
+    int max_compressed_size = (size * max_code_length) / 8 + 1;
+    unsigned char *compressed_data = (unsigned char *)malloc(max_compressed_size * sizeof(unsigned char));
+    int compressed_index = 0;
+
+    unsigned char current_byte = 0;
+    int current_bit = 0;
+
+    for (int i = 0; i < size; i++)
+    {
+        unsigned char symbol = data[i];
+        char *code = codes[symbol];
+        int code_length = strlen(code);
+
+        for (int j = 0; j < code_length; j++)
+        {
+            if (current_bit == 8)
+            {
+                compressed_data[compressed_index++] = current_byte;
+                current_byte = 0;
+                current_bit = 0;
+            }
+
+            if (code[j] == '1')
+                current_byte |= (1 << current_bit);
+
+            current_bit++;
+        }
+    }
+
+    if (current_bit > 0)
+        compressed_data[compressed_index++] = current_byte;
+
+    *compressed_size = compressed_index;
+    destroy_huffman_tree(huffman_tree);
+
+    for (int i = 0; i < 256; i++)
+    {
+        if (codes[i] != NULL)
+            free(codes[i]);
+    }
+
+    return compressed_data;
+}
+
+unsigned char *lz78_compressor(unsigned char *dado, int size, int *tam_comprimido)
+{
+    Dicionario *dicionario = (Dicionario *)malloc(size * sizeof(Dicionario));
+    int dicionario_size = 0;
+
+    unsigned char *comprimido = (unsigned char *)malloc(2 * size * sizeof(unsigned char));
+    int index = 0;
+
+    for (int i = 0; i < size; i += 3)
+    {
+        Pixel cor;
+        cor.r = dado[i];
+        cor.g = dado[i + 1];
+        cor.b = dado[i + 2];
+
+        int j = i + 3;
+        while (j < size)
+        {
+            Pixel proxima_cor;
+            proxima_cor.r = dado[j];
+            proxima_cor.g = dado[j + 1];
+            proxima_cor.b = dado[j + 2];
+
+            int k;
+            for (k = 0; k < dicionario_size; k++)
+            {
+                if (dicionario[k].cor.r == proxima_cor.r && dicionario[k].cor.g == proxima_cor.g && dicionario[k].cor.b == proxima_cor.b)
+                    break;
+            }
+
+            if (k == dicionario_size)
+            {
+                comprimido[index++] = dicionario_size;
+                comprimido[index++] = cor.r;
+                comprimido[index++] = cor.g;
+                comprimido[index++] = cor.b;
+
+                if (dicionario_size < size)
+                {
+                    dicionario[dicionario_size].cor = proxima_cor;
+                    dicionario_size++;
+                }
+
+                break;
+            }
+
+            cor = proxima_cor;
+            j += 3;
+        }
+    }
 
     *tam_comprimido = index;
+    free(dicionario);
     return comprimido;
 }
 
@@ -70,18 +317,16 @@ Imagem *carregar_ppm(const char *nome_arquivo)
     }
 
     char formato[3];
-    fscanf(arquivo, "%2s\n", formato); // Lê o formato do arquivo PPM (2 caracteres)
+    fscanf(arquivo, "%2s\n", formato);
 
     if (formato[0] != 'P' || formato[1] != '6')
-    {                                                           // Verifica se o formato é válido (P6)
-        fprintf(stderr, "Formato PPM inválido: %s\n", formato); // Exibe uma mensagem de erro se o formato for inválido
-        fclose(arquivo);                                        // Fecha o arquivo
+    {
+        fprintf(stderr, "Formato PPM inválido: %s\n", formato);
+        fclose(arquivo);
         return NULL;
     }
 
-    Imagem *imagem = malloc(sizeof(Imagem)); // Aloca memória para a estrutura de imagem
-
-    // Ignora comentários
+    Imagem *imagem = malloc(sizeof(Imagem));
     int c;
     while ((c = fgetc(arquivo)) == '#')
     {
@@ -89,40 +334,18 @@ Imagem *carregar_ppm(const char *nome_arquivo)
             ;
     }
     ungetc(c, arquivo);
-
-    fscanf(arquivo, "%d %d\n", &imagem->largura, &imagem->altura); // Lê a largura e altura da imagem
-
+    fscanf(arquivo, "%d %d\n", &imagem->largura, &imagem->altura);
     int valor_maximo;
-    fscanf(arquivo, "%d\n", &valor_maximo); // Lê o valor máximo para a intensidade de cor
-
-    imagem->dados = malloc(imagem->largura * imagem->altura * 3);       // Aloca memória para os dados da imagem (3 bytes por pixel)
-    fread(imagem->dados, 3, imagem->largura * imagem->altura, arquivo); // Lê os dados da imagem a partir do arquivo
-
-    fclose(arquivo); // Fecha o arquivo
-    return imagem;   // Retorna o ponteiro para a estrutura de imagem
-}
-
-/* void salvar_ppm(Imagem *imagem, unsigned char *dado_comprimido, int tam_comprimido, const char *nome_arquivo)
-{
-    FILE *arquivo = fopen(nome_arquivo, "wb");
-    if (!arquivo)
-    {
-        fprintf(stderr, "Falha ao abrir o arquivo: %s\n", nome_arquivo);
-        return;
-    }
-
-    fprintf(arquivo, "P6\n");
-    fprintf(arquivo, "%d %d\n", imagem->largura, imagem->altura);
-    fprintf(arquivo, "255\n");
-
-    fwrite(dado_comprimido, sizeof(unsigned char), tam_comprimido, arquivo);
-
+    fscanf(arquivo, "%d\n", &valor_maximo);
+    imagem->dados = malloc(imagem->largura * imagem->altura * 3);
+    fread(imagem->dados, 3, imagem->largura * imagem->altura, arquivo);
     fclose(arquivo);
-} */
+    return imagem;
+}
 
 int main()
 {
-        const char *nomesArquivos[] = {
+    const char *nomesArquivos[] = {
         "Image1.ppm",
         "louis.ppm",
         "magazines.ppm",
@@ -135,51 +358,46 @@ int main()
 
     for (int i = 0; i < numArquivos; i++)
     {
-    const char *nomeArquivo = nomesArquivos[i];
-    Imagem *imagem = carregar_ppm(nomeArquivo);
-    if (imagem)
-    {
-        printf("\nImagem:%s\n", nomeArquivo);
-        printf("Dimensoes: %dx%d\n", imagem->largura, imagem->altura);
+        const char *nomeArquivo = nomesArquivos[i];
+        Imagem *imagem = carregar_ppm(nomeArquivo);
+        if (imagem)
+        {
+            printf("\nImagem: %s\n", nomeArquivo);
+            printf("Dimensoes: %dx%d\n", imagem->largura, imagem->altura);
 
-        int tam_comprimido;
-        unsigned char *dado_comprimido = rle_compressor(imagem->dados, imagem->largura * imagem->altura * 3, &tam_comprimido);
+            int tamanho_original = imagem->largura * imagem->altura * 3;
+            int tam_comprimido;
+            unsigned char *dado_comprimido;
+            double taxa_compressao;
 
+            // RLE
+            dado_comprimido = rle_compressor(imagem->dados, tamanho_original, &tam_comprimido);
+            taxa_compressao = (1.0 - tam_comprimido / (double)tamanho_original) * 100;
+            printf("Metodo: RLE\n");
+            printf("Tamanho original: %d bytes\n", tamanho_original);
+            printf("Tamanho comprimido: %d bytes\n", tam_comprimido);
+            printf("Taxa de compressao: %.2f%%\n", taxa_compressao);
 
+            // Huffman
+            dado_comprimido = huffman_compressor(imagem->dados, tamanho_original, &tam_comprimido);
+            taxa_compressao = (1.0 - tam_comprimido / (double)tamanho_original) * 100;
+            printf("Metodo: Huffman\n");
+            printf("Tamanho original: %d bytes\n", tamanho_original);
+            printf("Tamanho comprimido: %d bytes\n", tam_comprimido);
+            printf("Taxa de compressao: %.2f%%\n", taxa_compressao);
 
-        // Criar o nome do arquivo de saída para a versão comprimida
-        char nomeComprimido[100];
-        snprintf(nomeComprimido, sizeof(nomeComprimido), "comprimido_%s", nomeArquivo);
+            // LZ78
+            dado_comprimido = lz78_compressor(imagem->dados, tamanho_original, &tam_comprimido);
+            taxa_compressao = (1.0 - tam_comprimido / (double)tamanho_original) * 100;
+            printf("Metodo: LZ78\n");
+            printf("Tamanho original: %d bytes\n", tamanho_original);
+            printf("Tamanho comprimido: %d bytes\n", tam_comprimido);
+            printf("Taxa de compressao: %.2f%%\n", taxa_compressao);
 
-        FILE *c = fopen(nomeComprimido, "wb");
-
-        // Escrever o cabeçalho PPM no arquivo
-        fprintf(c, "P6\n");
-        fprintf(c, "%d %d\n", imagem->largura, imagem->altura);
-        fprintf(c, "255\n");
-
-        // Escrever os dados comprimidos no arquivo
-        fwrite(dado_comprimido, sizeof(unsigned char), tam_comprimido, c);
-
-        fclose(c);
-
-
-        //free(dado);
-        
-        //salvar_ppm(imagem, dado_comprimido, tam_comprimido, "out.ppm");
-
-        int tamanho_original = imagem->largura * imagem->altura * 3;
-        double taxa_compressao = (1.0-tam_comprimido/(double)tamanho_original)*100;
-
-        printf("Tamanho original: %d bytes\n", tamanho_original);
-        printf("Tamanho comprimido: %d bytes\n", tam_comprimido);
-        printf("Taxa de compresssao: %.2f%%\n", taxa_compressao);
-        printf("Arquivo comprimido salvo como: %s\n", nomeComprimido);
-        printf("----------------------------------------------------------------");
-        free(imagem->dados);
-        free(imagem);
-        free(dado_comprimido);
+            printf("----------------------------------------------------------------\n");
+            free(imagem->dados);
+            free(imagem);
+        }
     }
-}
     return 0;
 }
