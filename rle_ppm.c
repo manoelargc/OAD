@@ -102,23 +102,6 @@ Imagem *carregar_ppm(const char *nome_arquivo)
     return imagem;   // Retorna o ponteiro para a estrutura de imagem
 }
 
-/* void salvar_ppm(Imagem *imagem, unsigned char *dado_comprimido, int tam_comprimido, const char *nome_arquivo)
-{
-    FILE *arquivo = fopen(nome_arquivo, "wb");
-    if (!arquivo)
-    {
-        fprintf(stderr, "Falha ao abrir o arquivo: %s\n", nome_arquivo);
-        return;
-    }
-
-    fprintf(arquivo, "P6\n");
-    fprintf(arquivo, "%d %d\n", imagem->largura, imagem->altura);
-    fprintf(arquivo, "255\n");
-
-    fwrite(dado_comprimido, sizeof(unsigned char), tam_comprimido, arquivo);
-
-    fclose(arquivo);
-} */
 
 int main()
 {
@@ -149,7 +132,7 @@ int main()
 
         // Criar o nome do arquivo de saída para a versão comprimida
         char nomeComprimido[100];
-        snprintf(nomeComprimido, sizeof(nomeComprimido), "comprimido_%s", nomeArquivo);
+        snprintf(nomeComprimido, sizeof(nomeComprimido), "rle_%s", nomeArquivo);
 
         FILE *c = fopen(nomeComprimido, "wb");
 
@@ -162,11 +145,6 @@ int main()
         fwrite(dado_comprimido, sizeof(unsigned char), tam_comprimido, c);
 
         fclose(c);
-
-
-        //free(dado);
-        
-        //salvar_ppm(imagem, dado_comprimido, tam_comprimido, "out.ppm");
 
         int tamanho_original = imagem->largura * imagem->altura * 3;
         double taxa_compressao = (1.0-tam_comprimido/(double)tamanho_original)*100;
