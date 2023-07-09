@@ -17,10 +17,10 @@ Não há necessidade de implementá-los.*/
 //-----------------
 typedef struct
 {
-    int largura;
-    int altura;
-    unsigned char *dados;
-} Imagem;
+    int width;
+    int height;
+    unsigned char *data;
+} Image;
 
 // Definição da estrutura Pixel
 typedef struct
@@ -30,12 +30,12 @@ typedef struct
     unsigned char b;
 } Pixel;
 
-// Definição da estrutura Dicionario
+// Definição da estrutura Dictionary
 typedef struct
 {
-    int indice;
-    Pixel cor;
-} Dicionario;
+    int index;
+    Pixel color;
+} Dictionary;
 
 // Definição da estrutura HuffmanNode
 typedef struct HuffmanNode
@@ -50,12 +50,12 @@ typedef struct HuffmanNode
 // PROTOTIPO DAS FUNÇÕES  <
 //-------------------------
 
-unsigned char *rle_compressor(unsigned char *dado, int size, int *tam_comprimido);
+unsigned char *rle_compressor(unsigned char *data, int size, int *compressed_size);
 unsigned char *huffman_compressor(unsigned char *data, int size, int *compressed_size);
 unsigned char *lz78_compressor(unsigned char *data, int size, int *compressed_size);
-Imagem *carregar_ppm(const char *nome_arquivo);
-void save_compressed_data(const char *filename, Imagem *imagem, unsigned char *compressed_data, int compressed_size);
-void processar_imagens(const char *nomesArquivos[], int numArquivos);
+Image *load_ppm(const char *filename);
+void save_compressed_data(const char *filename, Image *image, unsigned char *compressed_data, int compressed_size);
+void process_images(const char *filenames[], int numFiles);
 HuffmanNode *create_huffman_node(unsigned char symbol, int frequency, HuffmanNode *left, HuffmanNode *right);
 void destroy_huffman_tree(HuffmanNode *root);
 void build_frequency_table(unsigned char *data, int size, int *frequency_table);
@@ -69,7 +69,7 @@ void build_huffman_codes(HuffmanNode *node, char *code, char **codes);
 int main()
 {
     // Lista de arquivos de imagem a serem processados
-    const char *nomesArquivos[] = {
+    const char *filenames[] = {
         "Image1.ppm",
         "louis.ppm",
         "magazines.ppm",
@@ -78,10 +78,10 @@ int main()
         "EricWSchwartz.ppm"};
 
     // Número de arquivos de imagem
-    int numArquivos = sizeof(nomesArquivos) / sizeof(nomesArquivos[0]);
+    int numFiles = sizeof(filenames) / sizeof(filenames[0]);
 
     // Processar as imagens
-    processar_imagens(nomesArquivos, numArquivos);
+    process_images(filenames, numFiles);
 
     return 0;
 }
@@ -91,15 +91,15 @@ int main()
 //==============
 
 // Função para comprimir dados usando o algoritmo RLE
-unsigned char *rle_compressor(unsigned char *dado, int size, int *tam_comprimido)
+unsigned char *rle_compressor(unsigned char *data, int size, int *compressed_size)
 {
     // Alocar memória para os dados comprimidos
-    unsigned char *comprimido = (unsigned char *)malloc(2 * size * sizeof(unsigned char));
+    unsigned char *compressed = (unsigned char *)malloc(2 * size * sizeof(unsigned char));
 
     // Inicializar variáveis
-    unsigned char atual_r = dado[0];
-    unsigned char atual_g = dado[1];
-    unsigned char atual_b = dado[2];
+    unsigned char current_r = data[0];
+    unsigned char current_g = data[1];
+    unsigned char current_b = data[2];
     int count_rep = 1;
     int index = 0;
 
@@ -107,12 +107,12 @@ unsigned char *rle_compressor(unsigned char *dado, int size, int *tam_comprimido
     for (int i = 3; i < size; i += 3)
     {
         // Obter a próxima cor
-        unsigned char r = dado[i];
-        unsigned char g = dado[i + 1];
-        unsigned char b = dado[i + 2];
+        unsigned char r = data[i];
+        unsigned char g = data[i + 1];
+        unsigned char b = data[i + 2];
 
         // Verificar se a próxima cor é igual à cor atual
-        if (r == atual_r && g == atual_g && b == atual_b)
+        if (r == current_r && g == current_g && b == current_b)
         {
             // Incrementar o contador de repetições
             count_rep++;
@@ -121,10 +121,10 @@ unsigned char *rle_compressor(unsigned char *dado, int size, int *tam_comprimido
             if (count_rep >= 256)
             {
                 // Adicionar o contador de repetições e a cor atual aos dados comprimidos
-                comprimido[index++] = (unsigned char)(count_rep - 1);
-                comprimido[index++] = atual_r;
-                comprimido[index++] = atual_g;
-                comprimido[index++] = atual_b;
+                compressed[index++] = (unsigned char)(count_rep - 1);
+                compressed[index++] = current_r;
+                compressed[index++] = current_g;
+                compressed[index++] = current_b;
 
                 // Reiniciar o contador de repetições
                 count_rep = 1;
@@ -133,28 +133,28 @@ unsigned char *rle_compressor(unsigned char *dado, int size, int *tam_comprimido
         else
         {
             // Adicionar o contador de repetições e a cor atual aos dados comprimidos
-            comprimido[index++] = (unsigned char)count_rep;
-            comprimido[index++] = atual_r;
-            comprimido[index++] = atual_g;
-            comprimido[index++] = atual_b;
+            compressed[index++] = (unsigned char)count_rep;
+            compressed[index++] = current_r;
+            compressed[index++] = current_g;
+            compressed[index++] = current_b;
 
             // Atualizar a cor atual e reiniciar o contador de repetições
-            atual_r = r;
-            atual_g = g;
-            atual_b = b;
+            current_r = r;
+            current_g = g;
+            current_b = b;
             count_rep = 1;
         }
     }
 
     // Adicionar o último contador de repetições e a última cor aos dados comprimidos
-    comprimido[index++] = (unsigned char)count_rep;
-    comprimido[index++] = atual_r;
-    comprimido[index++] = atual_g;
-    comprimido[index++] = atual_b;
+    compressed[index++] = (unsigned char)count_rep;
+    compressed[index++] = current_r;
+    compressed[index++] = current_g;
+    compressed[index++] = current_b;
 
     // Armazenar o tamanho dos dados comprimidos e retornar os dados comprimidos
-    *tam_comprimido = index;
-    return comprimido;
+    *compressed_size = index;
+    return compressed;
 }
 
 // Função para criar um nó da árvore de Huffman
@@ -176,7 +176,7 @@ void destroy_huffman_tree(HuffmanNode *root)
     if (root == NULL)
         return;
 
-    // Destruir os nós filhos
+    // Destruir os nodos filhos
     destroy_huffman_tree(root->left);
     destroy_huffman_tree(root->right);
 
@@ -198,7 +198,7 @@ void build_frequency_table(unsigned char *data, int size, int *frequency_table)
 // Função para construir a árvore de Huffman
 HuffmanNode *build_huffman_tree(int *frequency_table)
 {
-    // Inicializar o heap com os nós folha da árvore de Huffman
+    // Inicializar o heap com os nodos folha da árvore de Huffman
     HuffmanNode *heap[256];
     int heap_size = 0;
 
@@ -211,10 +211,10 @@ HuffmanNode *build_huffman_tree(int *frequency_table)
         }
     }
 
-    // Construir a árvore de Huffman combinando os dois nós com menor frequência
+    // Construir a árvore de Huffman combinando os dois nodos com menor frequência
     while (heap_size > 1)
     {
-        // Encontrar os dois nós com menor frequência
+        // Encontrar os dois nodos com menor frequência
         int min1_index = 0;
         int min2_index = 1;
 
@@ -238,7 +238,7 @@ HuffmanNode *build_huffman_tree(int *frequency_table)
             }
         }
 
-        // Combinar os dois nós com menor frequência em um novo nó pai
+        // Combinar os dois nodos com menor frequência em um novo nó pai
         HuffmanNode *min1 = heap[min1_index];
         HuffmanNode *min2 = heap[min2_index];
         HuffmanNode *parent = create_huffman_node(0, min1->frequency + min2->frequency, min1, min2);
@@ -270,7 +270,7 @@ void build_huffman_codes(HuffmanNode *node, char *code, char **codes)
         return;
     }
 
-    // Construir os códigos de Huffman dos nós filhos
+    // Construir os códigos de Huffman dos nodos filhos
     int code_length = strlen(code);
 
     // Construir o código de Huffman do nó filho à esquerda
@@ -375,7 +375,7 @@ unsigned char *lz78_compressor(unsigned char *data, int size, int *compressed_si
     int max_dict_size = 256;
 
     // Inicializar o dicionário
-    Dicionario dictionary[max_dict_size];
+    Dictionary dictionary[max_dict_size];
     int dict_size = 0;
 
     // Alocar memória para os dados comprimidos
@@ -402,7 +402,7 @@ unsigned char *lz78_compressor(unsigned char *data, int size, int *compressed_si
         int j;
         for (j = 0; j < dict_size; j++)
         {
-            if (dictionary[j].cor.r == next_color.r && dictionary[j].cor.g == next_color.g && dictionary[j].cor.b == next_color.b)
+            if (dictionary[j].color.r == next_color.r && dictionary[j].color.g == next_color.g && dictionary[j].color.b == next_color.b)
                 break;
         }
 
@@ -418,8 +418,8 @@ unsigned char *lz78_compressor(unsigned char *data, int size, int *compressed_si
             // Adicionar a próxima cor ao dicionário, se houver espaço
             if (dict_size < max_dict_size)
             {
-                dictionary[dict_size].indice = dict_size;
-                dictionary[dict_size].cor = next_color;
+                dictionary[dict_size].index = dict_size;
+                dictionary[dict_size].color = next_color;
                 dict_size++;
             }
 
@@ -433,7 +433,7 @@ unsigned char *lz78_compressor(unsigned char *data, int size, int *compressed_si
         }
     }
 
-    // Adicionar o último índice e a última cor aos dados comprimidos
+    // Adicionar o último índice e a última cor aos dsdos comprimidos
     compressed[index++] = dict_size;
     compressed[index++] = current_color.r;
     compressed[index++] = current_color.g;
@@ -445,14 +445,14 @@ unsigned char *lz78_compressor(unsigned char *data, int size, int *compressed_si
 }
 
 // Função para carregar uma imagem PPM a partir de um arquivo
-Imagem *carregar_ppm(const char *nome_arquivo)
+Image *load_ppm(const char *filename)
 {
     // Abrir o arquivo para leitura
-    FILE *arquivo = fopen(nome_arquivo, "rb");
+    FILE *arquivo = fopen(filename, "rb");
     // Verificar se o arquivo foi aberto com sucesso
     if (!arquivo)
     {
-        fprintf(stderr, "Falha ao abrir o arquivo: %s\n", nome_arquivo);
+        fprintf(stderr, "Falha ao abrir o arquivo: %s\n", filename);
         return NULL;
     }
 
@@ -468,10 +468,10 @@ Imagem *carregar_ppm(const char *nome_arquivo)
         return NULL;
     }
 
-    // Alocar memória para a estrutura Imagem
-    Imagem *imagem = malloc(sizeof(Imagem));
+    // Alocar memória para a estrutura Image
+    Image *image = malloc(sizeof(Image));
 
-    // Ler o cabeçalho da imagem
+    // Le o cabeçalho da imagem
     int c;
     while ((c = fgetc(arquivo)) == '#')
     {
@@ -479,20 +479,20 @@ Imagem *carregar_ppm(const char *nome_arquivo)
             ;
     }
     ungetc(c, arquivo);
-    fscanf(arquivo, "%d %d\n", &imagem->largura, &imagem->altura);
+    fscanf(arquivo, "%d %d\n", &image->width, &image->height);
     int valor_maximo;
     fscanf(arquivo, "%d\n", &valor_maximo);
 
     // Alocar memória para os dados da imagem e ler os dados da imagem
-    imagem->dados = malloc(imagem->largura * imagem->altura * 3);
-    fread(imagem->dados, 3, imagem->largura * imagem->altura, arquivo);
+    image->data = malloc(image->width * image->height * 3);
+    fread(image->data, 3, image->width * image->height, arquivo);
 
     // Fechar o arquivo e retornar a imagem
     fclose(arquivo);
-    return imagem;
+    return image;
 }
 
-void save_compressed_data(const char *filename, Imagem *imagem, unsigned char *compressed_data, int compressed_size)
+void save_compressed_data(const char *filename, Image *image, unsigned char *compressed_data, int compressed_size)
 {
     FILE *file = fopen(filename, "wb");
     if (!file)
@@ -503,7 +503,7 @@ void save_compressed_data(const char *filename, Imagem *imagem, unsigned char *c
 
     // Escrever o cabeçalho PPM no arquivo
     fprintf(file, "P6\n");
-    fprintf(file, "%d %d\n", imagem->largura, imagem->altura);
+    fprintf(file, "%d %d\n", image->width, image->height);
     fprintf(file, "255\n");
 
     // Escrever os dados comprimidos no arquivo
@@ -512,7 +512,7 @@ void save_compressed_data(const char *filename, Imagem *imagem, unsigned char *c
 }
 
 // Função para processar várias imagens
-void processar_imagens(const char *nomesArquivos[], int numArquivos)
+void process_images(const char *filenames[], int numFiles)
 {
     // Abrir o arquivo para escrita
     FILE *file = fopen("comparacoes_compressores.txt", "w");
@@ -522,65 +522,63 @@ void processar_imagens(const char *nomesArquivos[], int numArquivos)
         return;
     }
 
-    // Percorrer a lista de arquivos de imagem
-    for (int i = 0; i < numArquivos; i++)
+    // Percorrer a lista de arquivos de imagemm
+    for (int i = 0; i < numFiles; i++)
     {
-        const char *nomeArquivo = nomesArquivos[i];
+        const char *nomeArquivo = filenames[i];
 
         // Carregar a imagem do arquivo
-        Imagem *imagem = carregar_ppm(nomeArquivo);
-        if (imagem)
+        Image *image = load_ppm(nomeArquivo);
+        if (image)
         {
-            fprintf(file,"\nImagem: %s\n", nomeArquivo);
-            fprintf(file,"Dimensoes: %dx%d\n", imagem->largura, imagem->altura);
+            fprintf(file, "\nImagem: %s\n", nomeArquivo);
+            fprintf(file, "Dimensoes: %dx%d\n", image->width, image->height);
 
             // Calcular o tamanho original dos dados da imagem
-            int tamanho_original = imagem->largura * imagem->altura * 3;
-            int tam_comprimido;
+            int tamanho_original = image->width * image->height * 3;
+            int compressed_size;
             unsigned char *dado_comprimido;
             double taxa_compressao;
 
-            fprintf(file,"Tamanho original: %d bytes\n", tamanho_original);
+            fprintf(file, "Tamanho original: %d bytes\n", tamanho_original);
 
             // RLE
-            dado_comprimido = rle_compressor(imagem->dados, tamanho_original, &tam_comprimido);
-            taxa_compressao = (1.0 - tam_comprimido / (double)tamanho_original) * 100;
-            fprintf(file,"\n------Metodo: RLE\n");
-            fprintf(file,"Tamanho comprimido: %d bytes\n", tam_comprimido);
-            fprintf(file,"Taxa de compressao: %.2f%%\n", taxa_compressao);
+            dado_comprimido = rle_compressor(image->data, tamanho_original, &compressed_size);
+            taxa_compressao = (1.0 - compressed_size / (double)tamanho_original) * 100;
+            fprintf(file, "\n------Metodo: RLE\n");
+            fprintf(file, "Tamanho compressed: %d bytes\n", compressed_size);
+            fprintf(file, "Taxa de compressao: %.2f%%\n", taxa_compressao);
 
             // Salvar dados comprimidos em um arquivo
             char output_filename[256];
             sprintf(output_filename, "compressoes/RLE/RLE-%s", nomeArquivo);
-            save_compressed_data(output_filename, imagem, dado_comprimido, tam_comprimido);
+            save_compressed_data(output_filename, image, dado_comprimido, compressed_size);
 
             // Huffman
-            dado_comprimido = huffman_compressor(imagem->dados, tamanho_original, &tam_comprimido);
-            taxa_compressao = (1.0 - tam_comprimido / (double)tamanho_original) * 100;
-            fprintf(file,"\n------Metodo: Huffman\n");
-            fprintf(file,"Tamanho comprimido: %d bytes\n", tam_comprimido);
-            fprintf(file,"Taxa de compressao: %.2f%%\n", taxa_compressao);
+            dado_comprimido = huffman_compressor(image->data, tamanho_original, &compressed_size);
+            taxa_compressao = (1.0 - compressed_size / (double)tamanho_original) * 100;
+            fprintf(file, "\n------Metodo: Huffman\n");
+            fprintf(file, "Tamanho compressed: %d bytes\n", compressed_size);
+            fprintf(file, "Taxa de compressao: %.2f%%\n", taxa_compressao);
 
-            // Salvar dados comprimidos em um arquivo
             sprintf(output_filename, "compressoes/HUFFMAN/HUFF-%s", nomeArquivo);
-            save_compressed_data(output_filename, imagem, dado_comprimido, tam_comprimido);
+            save_compressed_data(output_filename, image, dado_comprimido, compressed_size);
 
             // LZ78
-            dado_comprimido = lz78_compressor(imagem->dados, tamanho_original, &tam_comprimido);
-            taxa_compressao = (1.0 - tam_comprimido / (double)tamanho_original) * 100;
-            fprintf(file,"\n------Metodo: LZ78\n");
-            fprintf(file,"Tamanho comprimido: %d bytes\n", tam_comprimido);
-            fprintf(file,"Taxa de compressao: %.2f%%\n", taxa_compressao);
+            dado_comprimido = lz78_compressor(image->data, tamanho_original, &compressed_size);
+            taxa_compressao = (1.0 - compressed_size / (double)tamanho_original) * 100;
+            fprintf(file, "\n------Metodo: LZ78\n");
+            fprintf(file, "Tamanho compressed: %d bytes\n", compressed_size);
+            fprintf(file, "Taxa de compressao: %.2f%%\n", taxa_compressao);
 
-            // Salvar dados comprimidos em um arquivo
             sprintf(output_filename, "compressoes/LZ78/LZ78-%s", nomeArquivo);
-            save_compressed_data(output_filename, imagem, dado_comprimido, tam_comprimido);
+            save_compressed_data(output_filename, image, dado_comprimido, compressed_size);
 
-            fprintf(file,"----------------------------------------------------------------\n");
+            fprintf(file, "----------------------------------------------------------------\n");
 
             // Liberar a memória da imagem
-            free(imagem->dados);
-            free(imagem);
+            free(image->data);
+            free(image);
         }
     }
     // Fechar o arquivo
