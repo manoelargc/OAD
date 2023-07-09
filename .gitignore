@@ -1,4 +1,3 @@
 
-*.ppm
-*.json
+**.json
 *.exe
