@@ -253,6 +253,7 @@ HuffmanNode *build_huffman_tree(int *frequency_table)
     return heap[0];
 }
 
+
 // Função para construir os códigos de Huffman a partir da árvore de Huffman
 void build_huffman_codes(HuffmanNode *node, char *code, char **codes)
 {
@@ -280,6 +281,8 @@ void build_huffman_codes(HuffmanNode *node, char *code, char **codes)
     left_code[code_length + 1] = '\0';
 
     build_huffman_codes(node->left, left_code, codes);
+
+
 
     // Construir o código de Huffman do nó filho à direita
     char *right_code = (char *)malloc(code_length + 2);
@@ -349,9 +352,11 @@ unsigned char *huffman_compressor(unsigned char *data, int size, int *compressed
         }
     }
 
+
     // Adicionar o último byte aos dados comprimidos, se necessário
     if (current_bit > 0)
         compressed_data[compressed_index++] = current_byte;
+
 
     // Armazenar o tamanho dos dados comprimidos e retornar os dados comprimidos
     *compressed_size = compressed_index;
@@ -367,6 +372,7 @@ unsigned char *huffman_compressor(unsigned char *data, int size, int *compressed
 
     return compressed_data;
 }
+
 
 // função que comprime com o algoritmo de LZ78
 unsigned char *lz78_compressor(unsigned char *data, int size, int *compressed_size)
@@ -422,6 +428,7 @@ unsigned char *lz78_compressor(unsigned char *data, int size, int *compressed_si
                 dictionary[dict_size].color = next_color;
                 dict_size++;
             }
+
 
             // Atualizar a cor atual
             current_color = next_color;

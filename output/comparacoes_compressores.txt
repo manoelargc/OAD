@@ -1,0 +1,102 @@
+
+Imagem: Image1.ppm
+Dimensoes: 200x138
+Tamanho original: 82800 bytes
+
+------Metodo: RLE
+Tamanho comprimido: 972 bytes
+Taxa de compressao: 98.83%
+
+------Metodo: Huffman
+Tamanho comprimido: 21205 bytes
+Taxa de compressao: 74.39%
+
+------Metodo: LZ78
+Tamanho comprimido: 20 bytes
+Taxa de compressao: 99.98%
+----------------------------------------------------------------
+
+Imagem: louis.ppm
+Dimensoes: 704x440
+Tamanho original: 929280 bytes
+
+------Metodo: RLE
+Tamanho comprimido: 414004 bytes
+Taxa de compressao: 55.45%
+
+------Metodo: Huffman
+Tamanho comprimido: 459711 bytes
+Taxa de compressao: 50.53%
+
+------Metodo: LZ78
+Tamanho comprimido: 680468 bytes
+Taxa de compressao: 26.77%
+----------------------------------------------------------------
+
+Imagem: magazines.ppm
+Dimensoes: 1440x1080
+Tamanho original: 4665600 bytes
+
+------Metodo: RLE
+Tamanho comprimido: 5110772 bytes
+Taxa de compressao: -9.54%
+
+------Metodo: Huffman
+Tamanho comprimido: 4528069 bytes
+Taxa de compressao: 2.95%
+
+------Metodo: LZ78
+Tamanho comprimido: 6177416 bytes
+Taxa de compressao: -32.40%
+----------------------------------------------------------------
+
+Imagem: debbiewarhol.ppm
+Dimensoes: 925x595
+Tamanho original: 1651125 bytes
+
+------Metodo: RLE
+Tamanho comprimido: 722244 bytes
+Taxa de compressao: 56.26%
+
+------Metodo: Huffman
+Tamanho comprimido: 1371203 bytes
+Taxa de compressao: 16.95%
+
+------Metodo: LZ78
+Tamanho comprimido: 1732720 bytes
+Taxa de compressao: -4.94%
+----------------------------------------------------------------
+
+Imagem: maxresdefault.ppm
+Dimensoes: 1280x720
+Tamanho original: 2764800 bytes
+
+------Metodo: RLE
+Tamanho comprimido: 212584 bytes
+Taxa de compressao: 92.31%
+
+------Metodo: Huffman
+Tamanho comprimido: 1429857 bytes
+Taxa de compressao: 48.28%
+
+------Metodo: LZ78
+Tamanho comprimido: 68 bytes
+Taxa de compressao: 100.00%
+----------------------------------------------------------------
+
+Imagem: EricWSchwartz.ppm
+Dimensoes: 640x818
+Tamanho original: 1570560 bytes
+
+------Metodo: RLE
+Tamanho comprimido: 2009092 bytes
+Taxa de compressao: -27.92%
+
+------Metodo: Huffman
+Tamanho comprimido: 1494650 bytes
+Taxa de compressao: 4.83%
+
+------Metodo: LZ78
+Tamanho comprimido: 1974080 bytes
+Taxa de compressao: -25.69%
+----------------------------------------------------------------
