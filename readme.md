@@ -1,5 +1,5 @@
 # PPM Compressor (RLE, HUFFMAN, LZ78) 
-Este código foi desenvolvido como parte da Avaliação 2 da disciplina de Organização e Arquivo de Dados do 3º semestre de Ciência da Computação - 23.1. O autor deste trabalho é Manoela Resende, com o perfil [manoelargc](https://github.com/manoelargc).
+Este código foi desenvolvido como parte da Avaliação 2 da disciplina de Organização e Arquivo de Dados do 3º semestre de Ciência da Computação - 23.1. O autor deste trabalho é Manoela Resende, com o perfil [manoelargc](https://github.com/manoelargc). 
 
 ## Descrição do Código
 O código consiste na implementação de três algoritmos de compressão: RLE (Run-Length Encoding), Huffman e LZ78 (Lempel-Ziv 78). O objetivo é comparar as taxas de compressão desses algoritmos para diferentes arquivos de imagem no formato PPM.
