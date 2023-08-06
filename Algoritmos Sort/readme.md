@@ -8,14 +8,14 @@ cada algoritmo em diferentes tamanhos de vetores. A funcionalidade principal do 
 desempenho dos algoritmos.O código implementa os seguintes algoritmos:
 
 • Grupo 1 (complexidade O(n²)):
-o Bubble Sort
-o Insertion Sort
-o Selection Sort
+- Bubble Sort
+- Insertion Sort
+- Selection Sort
 
 • Grupo 2 (complexidade O(n log n)):
-o Merge Sort
-o Quick Sort
-o Heap Sort
+- Merge Sort
+- Quick Sort
+- Heap Sort
 
 Além desses algoritmos, o código também implementa o algoritmo Radix 
 Sort, que possui complexidade O(w + n), onde w é o número de dígitos dos 
